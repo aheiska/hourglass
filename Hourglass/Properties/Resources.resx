@@ -777,7 +777,7 @@ $</value>
     <comment>A format string for the error message displayed when a command-line argument switch is unrecognized, where {0} is the unrecognized switch (e.g., "Unrecognized switch '{0}'." =&gt; "Unrecognized switch '--junk'.")</comment>
   </data>
   <data name="ContextMenuAlwaysOnTopMenuItem" xml:space="preserve">
-    <value>_Always on top</value>
+    <value>Al_ways on top</value>
     <comment>The text for the always on top menu item, where the character following the optional underscore (_) is the access key</comment>
   </data>
   <data name="ContextMenuClearRecentInputsMenuItem" xml:space="preserve">
@@ -888,12 +888,12 @@ $</value>
     <value>_Pause</value>
     <comment>The text for the pause button in the timer window, where the character following the optional underscore (_) is the access key</comment>
   </data>
-  <data name="TimerWindowResetButtonContent" xml:space="preserve">
-    <value>_Reset</value>
-    <comment>The text for the reset button in the timer window, where the character following the optional underscore (_) is the access key</comment>
+  <data name="TimerWindowRestartButtonContent" xml:space="preserve">
+    <value>_Restart</value>
+    <comment>The text for the restart button in the timer window, where the character following the optional underscore (_) is the access key</comment>
   </data>
   <data name="TimerWindowResumeButtonContent" xml:space="preserve">
-    <value>_Resume</value>
+    <value>R_esume</value>
     <comment>The text for the resume button in the timer window, where the character following the optional underscore (_) is the access key</comment>
   </data>
   <data name="TimerWindowStartButtonContent" xml:space="preserve">
@@ -1057,6 +1057,10 @@ $</value>
     <value>Shut _down when expired</value>
     <comment>The text for the shut down when expired menu item, where the character following the optional underscore (_) is the access key</comment>
   </data>
+  <data name="ContextMenuReverseProgressBarMenuItem" xml:space="preserve">
+    <value>_Reverse progress bar</value>
+    <comment>The text for the reverse progress bar menu item, where the character following the optional underscore (_) is the access key</comment>
+  </data>
   <data name="ContextMenuOpenAllSavedTimersMenuItem" xml:space="preserve">
     <value>_Open all saved timers</value>
     <comment>The text for the open all saved timers menu item, where the character following the optional underscore (_) is the access key</comment>
@@ -1181,6 +1185,10 @@ $</value>
     <value>Are you sure you want to delete the selected theme?</value>
     <comment>The prompt displayed when the user deletes a theme</comment>
   </data>
+  <data name="ContextMenuNoWindowTitleMenuItem" xml:space="preserve">
+    <value>_None</value>
+    <comment>The text for the application name menu item, where the character following the optional underscore (_) is the access key</comment>
+  </data>
   <data name="ContextMenuApplicationNameWindowTitleMenuItem" xml:space="preserve">
     <value>_Application name</value>
     <comment>The text for the application name menu item, where the character following the optional underscore (_) is the access key</comment>
@@ -1208,5 +1216,84 @@ $</value>
   <data name="TimerWindowCouldNotLaunchWebBrowserErrorTitle" xml:space="preserve">
     <value>Could not launch web browser</value>
     <comment>The title of the error dialog shown when the web browser could not be launched to open the download page for the latest version of the app</comment>
+  </data>
+  <data name="ContextMenuTimeElapsedPlusTimerTitleWindowTitleMenuItem" xml:space="preserve">
+    <value>Time ela_psed · Timer title</value>
+    <comment>The text for the time elapsed plus timer title menu item, where the character following the optional underscore (_) is the access key</comment>
+  </data>
+  <data name="ContextMenuTimeLeftPlusTimerTitleWindowTitleMenuItem" xml:space="preserve">
+    <value>Time le_ft · Timer title</value>
+    <comment>The text for the time left plus timer title menu item, where the character following the optional underscore (_) is the access key</comment>
+  </data>
+  <data name="ContextMenuTimerTitlePlusTimeElapsedWindowTitleMenuItem" xml:space="preserve">
+    <value>Ti_mer title · Time elapsed</value>
+    <comment>The text for the timer title plus time elapsed menu item, where the character following the optional underscore (_) is the access key</comment>
+  </data>
+  <data name="ContextMenuTimerTitlePlusTimeLeftWindowTitleMenuItem" xml:space="preserve">
+    <value>T_imer title · Time left</value>
+    <comment>The text for the timer title plus time left menu item, where the character following the optional underscore (_) is the access key</comment>
+  </data>
+  <data name="TimerWindowTitleSeparator" xml:space="preserve">
+    <value> · </value>
+    <comment>The separator for parts of the window title for the timer window</comment>
+  </data>
+  <data name="TimerStartZero" xml:space="preserve">
+    <value>0 seconds</value>
+    <comment>The zero-length value for a timer</comment>
+  </data>
+  <data name="ContextMenuShowProgressInTaskbarMenuItem" xml:space="preserve">
+    <value>Show progress in taskbar</value>
+    <comment>The text for the show progress in taskbar menu item</comment>
+  </data>
+  <data name="ContextMenuMaximizeMenuItem" xml:space="preserve">
+    <value>Ma_ximize</value>
+    <comment>The text for the maximize menu item, where the character following the optional underscore (_) is the access key</comment>
+  </data>
+  <data name="ContextMenuMinimizeMenuItem" xml:space="preserve">
+    <value>_Minimize</value>
+    <comment>The text for the minimize menu item, where the character following the optional underscore (_) is the access key</comment>
+  </data>
+  <data name="ContextMenuRestoreMenuItem" xml:space="preserve">
+    <value>Rest_ore</value>
+    <comment>The text for the restore menu item, where the character following the optional underscore (_) is the access key</comment>
+  </data>
+  <data name="ContextMenuPrefer24HourTimeMenuItem" xml:space="preserve">
+    <value>Prefer 24-_hour time when parsing</value>
+    <comment>The text for the prefer 24-hour time when parsing menu item, where the character following the optional underscore (_) is the access key</comment>
+  </data>
+  <data name="ContextMenuAboutMenuItem" xml:space="preserve">
+    <value>_About</value>
+    <comment>The text for the about menu item, where the character following the optional underscore (_) is the access key</comment>
+  </data>
+  <data name="License" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\License.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+  <data name="AboutDialogCloseButtonContent" xml:space="preserve">
+    <value>_Close</value>
+    <comment>The text for the close button in the about dialog, where the character following the optional underscore (_) is the access key</comment>
+  </data>
+  <data name="AboutDialogContributeOnGitHub" xml:space="preserve">
+    <value>Contribute on GitHub:</value>
+    <comment>The label used as a heading above the app GitHub address in the about dialog</comment>
+  </data>
+  <data name="AboutDialogLicense" xml:space="preserve">
+    <value>License:</value>
+    <comment>The label used as a heading above the app license text box in the about dialog</comment>
+  </data>
+  <data name="AboutDialogMoreInformation" xml:space="preserve">
+    <value>More information:</value>
+    <comment>The label used as a heading above the app website address in the about dialog</comment>
+  </data>
+  <data name="AboutDialogTitle" xml:space="preserve">
+    <value>About Hourglass</value>
+    <comment>The window title for the about dialog</comment>
+  </data>
+  <data name="AppName" xml:space="preserve">
+    <value>Hourglass</value>
+    <comment>The name of the app</comment>
+  </data>
+  <data name="UsageDialogAboutHourglassHyperlinkText" xml:space="preserve">
+    <value>About Hourglass</value>
+    <comment>The text for the hyperlink that launches the about dialog from the usage dialog</comment>
   </data>
 </root>

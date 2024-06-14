@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -9,8 +9,8 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Hourglass</RootNamespace>
     <AssemblyName>Hourglass</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -52,6 +52,26 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release Portable\</OutputPath>
+    <DefineConstants>PORTABLE;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Signed|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Signed\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Signed Portable|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Signed Portable\</OutputPath>
     <DefineConstants>PORTABLE;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -142,6 +162,9 @@
     <Compile Include="Timing\TimerBase.cs" />
     <Compile Include="Timing\TimerOptions.cs" />
     <Compile Include="Timing\TimerStart.cs" />
+    <Compile Include="Windows\AboutDialog.xaml.cs">
+      <DependentUpon>AboutDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Windows\ColorControl.xaml.cs">
       <DependentUpon>ColorControl.xaml</DependentUpon>
     </Compile>
@@ -166,6 +189,10 @@
     <Compile Include="Windows\Watermark.cs" />
     <Compile Include="Windows\WatermarkAdorner.cs" />
     <Compile Include="Windows\WindowSize.cs" />
+    <Page Include="Windows\AboutDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Windows\ColorControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -209,7 +236,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
+      <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
@@ -222,14 +249,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AppIcon.ico" />
-    <None Include="Resources\TrayIcon.ico" />
     <Content Include="Resources\BeepLoud.wav" />
     <Content Include="Resources\BeepNormal.wav" />
     <Content Include="Resources\BeepQuiet.wav" />
+    <None Include="Resources\License.txt" />
+    <None Include="Resources\TrayIcon.ico" />
     <None Include="Resources\Usage.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Target Name="AfterBuild" Condition=" ('$(Configuration)' == 'Release') Or ('$(Configuration)' == 'Release Portable') ">
-    <SignFile CertificateThumbprint="CE0BA5E4B388D469012D010B514D493DBA91B022" SigningTarget="$(TargetPath)" TimestampUrl="http://timestamp.comodoca.com/authenticode" TargetFrameworkVersion="$(TargetFrameworkVersion)" />
+  <Target Name="AfterBuild" Condition=" ('$(Configuration)' == 'Signed') Or ('$(Configuration)' == 'Signed Portable') ">
+    <SignFile CertificateThumbprint="B77A97E1103C36360CDC8D49CF0D3D5BBBE6827E" SigningTarget="$(TargetPath)" TimestampUrl="http://timestamp.digicert.com" TargetFrameworkVersion="$(TargetFrameworkVersion)" />
   </Target>
 </Project>

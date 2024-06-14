@@ -15,7 +15,7 @@ namespace Hourglass.Windows
     using System.Windows.Input;
     using System.Windows.Media.Animation;
     using System.Windows.Shell;
-    
+
     using Hourglass.Extensions;
     using Hourglass.Managers;
     using Hourglass.Properties;
@@ -70,9 +70,9 @@ namespace Hourglass.Windows
         public static readonly RoutedCommand StopCommand = new RoutedCommand();
 
         /// <summary>
-        /// Enters input mode.
+        /// Restarts the timer.
         /// </summary>
-        public static readonly RoutedCommand ResetCommand = new RoutedCommand();
+        public static readonly RoutedCommand RestartCommand = new RoutedCommand();
 
         /// <summary>
         /// Closes the window.
@@ -414,7 +414,9 @@ namespace Hourglass.Windows
         /// specified <see cref="TimerStart"/>.
         /// </summary>
         /// <param name="timerStart">A <see cref="TimerStart"/>.</param>
-        public void Show(TimerStart timerStart)
+        /// <param name="remember">A value indicating whether to remember the <see cref="TimerStart"/> as a recent
+        /// input.</param>
+        public void Show(TimerStart timerStart, bool remember = true)
         {
             // Keep track of the input
             this.LastTimerStart = timerStart;
@@ -423,14 +425,30 @@ namespace Hourglass.Windows
             Timer newTimer = new Timer(this.Options);
             if (!newTimer.Start(timerStart))
             {
-                this.Show();
-                this.SwitchToInputMode();
-                this.BeginValidationErrorAnimation();
-                return;
+                // The user has started a timer that expired in the past
+                if (this.Options.LockInterface)
+                {
+                    // If the interface is locked, there is nothing the user can do or should be able to do other than
+                    // close the window, so pretend that the timer expired immediately
+                    this.Show(TimerStart.Zero, false /* remember */);
+                    return;
+                }
+                else
+                {
+                    // Otherwise, assume the user made an error and display a validation error animation
+                    this.Show();
+                    this.SwitchToInputMode();
+                    this.BeginValidationErrorAnimation();
+                    return;
+                }
             }
 
             TimerManager.Instance.Add(newTimer);
-            TimerStartManager.Instance.Add(timerStart);
+
+            if (remember)
+            {
+                TimerStartManager.Instance.Add(timerStart);
+            }
 
             // Show the window
             this.Show(newTimer);
@@ -445,7 +463,7 @@ namespace Hourglass.Windows
             // Show the status of the existing timer
             this.Timer = existingTimer;
             this.SwitchToStatusMode();
-            
+
             // Show the window if it is not already open
             if (!this.IsVisible)
             {
@@ -582,6 +600,7 @@ namespace Hourglass.Windows
         {
             this.Mode = TimerWindowMode.Input;
 
+            this.TitleTextBox.Text = this.Timer.Options.Title;
             this.TimerTextBox.Text = this.LastTimerStart != null ? this.LastTimerStart.ToString() : string.Empty;
 
             textBoxToFocus = textBoxToFocus ?? this.TimerTextBox;
@@ -628,7 +647,7 @@ namespace Hourglass.Windows
                         this.SwitchToStatusMode();
                         return true;
                     }
-                    
+
                     // Stop playing the notification sound if it is playing
                     if (this.soundPlayer.IsPlaying)
                     {
@@ -639,14 +658,14 @@ namespace Hourglass.Windows
                     return false;
 
                 case TimerWindowMode.Status:
-                    // Switch to input mode if the timer is expired
-                    if (this.Timer.State == TimerState.Expired)
+                    // Switch to input mode if the timer is expired and the interface is not locked
+                    if (this.Timer.State == TimerState.Expired && !this.Options.LockInterface)
                     {
                         this.Timer.Stop();
                         this.SwitchToInputMode();
                         return true;
                     }
-                    
+
                     // Stop playing the notification sound if it is playing
                     if (this.soundPlayer.IsPlaying)
                     {
@@ -673,7 +692,7 @@ namespace Hourglass.Windows
                 || this.PauseButton.Unfocus()
                 || this.ResumeButton.Unfocus()
                 || this.StopButton.Unfocus()
-                || this.ResetButton.Unfocus()
+                || this.RestartButton.Unfocus()
                 || this.CloseButton.Unfocus()
                 || this.CancelButton.Unfocus()
                 || this.UpdateButton.Unfocus();
@@ -695,7 +714,7 @@ namespace Hourglass.Windows
             this.PauseButton.Content = Properties.Resources.TimerWindowPauseButtonContent;
             this.ResumeButton.Content = Properties.Resources.TimerWindowResumeButtonContent;
             this.StopButton.Content = Properties.Resources.TimerWindowStopButtonContent;
-            this.ResetButton.Content = Properties.Resources.TimerWindowResetButtonContent;
+            this.RestartButton.Content = Properties.Resources.TimerWindowRestartButtonContent;
             this.CloseButton.Content = Properties.Resources.TimerWindowCloseButtonContent;
             this.CancelButton.Content = Properties.Resources.TimerWindowCancelButtonContent;
             this.UpdateButton.Content = Properties.Resources.TimerWindowUpdateButtonContent;
@@ -949,16 +968,16 @@ namespace Hourglass.Windows
         #endregion
 
         #region Private Methods (Update Button)
-        
+
         /// <summary>
         /// Initializes the update button.
         /// </summary>
         private void InitializeUpdateButton()
         {
             UpdateManager.Instance.PropertyChanged += this.UpdateManagerPropertyChanged;
-            this.UpdateButton.IsEnabled = UpdateManager.Instance.HasUpdates;
+            this.UpdateButton.IsEnabled = UpdateManager.Instance.HasUpdates && (this.Mode == TimerWindowMode.Input || !this.Options.LockInterface);
         }
-        
+
         /// <summary>
         /// Invoked when a <see cref="UpdateManager"/> property value changes.
         /// </summary>
@@ -968,7 +987,7 @@ namespace Hourglass.Windows
         {
             this.Dispatcher.BeginInvoke(new Action(() =>
             {
-                this.UpdateButton.IsEnabled = UpdateManager.Instance.HasUpdates;
+                this.UpdateButton.IsEnabled = UpdateManager.Instance.HasUpdates && (this.Mode == TimerWindowMode.Input || !this.Options.LockInterface);
             }));
         }
 
@@ -997,6 +1016,22 @@ namespace Hourglass.Windows
         }
 
         /// <summary>
+        /// Returns the progress bar value for the current timer.
+        /// </summary>
+        /// <returns>The progress bar value for the current timer.</returns>
+        private double GetProgressBarValue()
+        {
+            if (this.Options.ReverseProgressBar)
+            {
+                return this.Timer.TimeElapsedAsPercentage ?? 100.0;
+            }
+            else
+            {
+                return this.Timer.TimeLeftAsPercentage ?? 0.0;
+            }
+        }
+
+        /// <summary>
         /// Updates the controls bound to timer properties.
         /// </summary>
         private void UpdateBoundControls()
@@ -1004,44 +1039,107 @@ namespace Hourglass.Windows
             switch (this.Mode)
             {
                 case TimerWindowMode.Input:
-                    this.ProgressBar.Value = this.Timer.TimeLeftAsPercentage ?? 0.0;
+                    this.ProgressBar.Value = this.GetProgressBarValue();
                     this.UpdateTaskbarProgress();
 
+                    // Enable and disable command buttons as required
                     this.StartButton.IsEnabled = true;
                     this.PauseButton.IsEnabled = false;
                     this.ResumeButton.IsEnabled = false;
                     this.StopButton.IsEnabled = false;
-                    this.ResetButton.IsEnabled = false;
+                    this.RestartButton.IsEnabled = false;
                     this.CloseButton.IsEnabled = false;
                     this.CancelButton.IsEnabled = this.Timer.State != TimerState.Stopped && this.Timer.State != TimerState.Expired;
+                    this.UpdateButton.IsEnabled = UpdateManager.Instance.HasUpdates;
+
+                    // Restore the border, context menu, and watermark text that appear for the text boxes
+                    this.TitleTextBox.BorderThickness = new Thickness(1);
+                    this.TimerTextBox.BorderThickness = new Thickness(1);
+                    this.TitleTextBox.IsReadOnly = false;
+                    this.TimerTextBox.IsReadOnly = false;
+                    Watermark.SetHint(this.TitleTextBox, Properties.Resources.TimerWindowTitleTextHint);
+                    Watermark.SetHint(this.TimerTextBox, Properties.Resources.TimerWindowTimerTextHint);
 
                     this.Topmost = this.Options.AlwaysOnTop;
 
                     this.UpdateBoundTheme();
                     this.UpdateKeepAwake();
                     this.UpdateWindowTitle();
+                    this.UpdateWindowChrome();
                     return;
 
                 case TimerWindowMode.Status:
-                    this.TimerTextBox.Text = this.Timer.Options.ShowTimeElapsed
-                        ? this.Timer.TimeElapsedAsString
-                        : this.Timer.TimeLeftAsString;
-                    this.ProgressBar.Value = this.Timer.TimeLeftAsPercentage ?? 0.0;
+                    if (this.Timer.State == TimerState.Expired && !string.IsNullOrWhiteSpace(this.Timer.Options.Title) && !this.TitleTextBox.IsFocused)
+                    {
+                        this.TitleTextBox.TextChanged -= this.TitleTextBoxTextChanged;
+                        this.TitleTextBox.Text = this.Timer.Options.ShowTimeElapsed
+                            ? this.Timer.TimeElapsedAsString
+                            : this.Timer.TimeLeftAsString;
+                        this.TitleTextBox.TextChanged += this.TitleTextBoxTextChanged;
+
+                        this.TimerTextBox.Text = this.Timer.Options.Title;
+                    }
+                    else
+                    {
+                        this.TitleTextBox.TextChanged -= this.TitleTextBoxTextChanged;
+                        this.TitleTextBox.Text = this.Timer.Options.Title;
+                        this.TitleTextBox.TextChanged += this.TitleTextBoxTextChanged;
+
+                        this.TimerTextBox.Text = this.Timer.Options.ShowTimeElapsed
+                            ? this.Timer.TimeElapsedAsString
+                            : this.Timer.TimeLeftAsString;
+                    }
+
+                    this.ProgressBar.Value = this.GetProgressBarValue();
                     this.UpdateTaskbarProgress();
 
-                    this.StartButton.IsEnabled = false;
-                    this.PauseButton.IsEnabled = this.Timer.State == TimerState.Running && this.Timer.SupportsPause;
-                    this.ResumeButton.IsEnabled = this.Timer.State == TimerState.Paused;
-                    this.StopButton.IsEnabled = this.Timer.State != TimerState.Stopped && this.Timer.State != TimerState.Expired;
-                    this.ResetButton.IsEnabled = this.Timer.State == TimerState.Stopped || this.Timer.State == TimerState.Expired;
-                    this.CloseButton.IsEnabled = this.Timer.State == TimerState.Stopped || this.Timer.State == TimerState.Expired;
-                    this.CancelButton.IsEnabled = false;
+                    if (this.Options.LockInterface)
+                    {
+                        // Disable command buttons except for close when stopped or expired
+                        this.StartButton.IsEnabled = false;
+                        this.PauseButton.IsEnabled = false;
+                        this.ResumeButton.IsEnabled = false;
+                        this.StopButton.IsEnabled = false;
+                        this.RestartButton.IsEnabled = false;
+                        this.CloseButton.IsEnabled = this.Timer.State == TimerState.Stopped || this.Timer.State == TimerState.Expired;
+                        this.CancelButton.IsEnabled = false;
+                        this.UpdateButton.IsEnabled = false;
+
+                        // Hide the border, context menu, and watermark text that appear for the text boxes
+                        this.TitleTextBox.BorderThickness = new Thickness(0);
+                        this.TimerTextBox.BorderThickness = new Thickness(0);
+                        this.TitleTextBox.IsReadOnly = true;
+                        this.TimerTextBox.IsReadOnly = true;
+                        Watermark.SetHint(this.TitleTextBox, null);
+                        Watermark.SetHint(this.TimerTextBox, null);
+                    }
+                    else
+                    {
+                        // Enable and disable command buttons as required
+                        this.StartButton.IsEnabled = false;
+                        this.PauseButton.IsEnabled = this.Timer.State == TimerState.Running && this.Timer.SupportsPause;
+                        this.ResumeButton.IsEnabled = this.Timer.State == TimerState.Paused;
+                        this.StopButton.IsEnabled = this.Timer.State != TimerState.Stopped && this.Timer.State != TimerState.Expired;
+                        this.RestartButton.IsEnabled = this.Timer.SupportsRestart;
+                        this.CloseButton.IsEnabled = this.Timer.State == TimerState.Stopped || this.Timer.State == TimerState.Expired;
+                        this.CancelButton.IsEnabled = false;
+                        this.UpdateButton.IsEnabled = UpdateManager.Instance.HasUpdates;
+
+                        // Restore the border, context menu, and watermark text that appear for the text boxes
+                        this.TitleTextBox.BorderThickness = new Thickness(1);
+                        this.TimerTextBox.BorderThickness = new Thickness(1);
+                        this.TitleTextBox.IsReadOnly = false;
+                        this.TimerTextBox.IsReadOnly = false;
+                        Watermark.SetHint(this.TitleTextBox, Properties.Resources.TimerWindowTitleTextHint);
+                        Watermark.SetHint(this.TimerTextBox, Properties.Resources.TimerWindowTimerTextHint);
+                    }
 
                     this.Topmost = this.Options.AlwaysOnTop;
 
                     this.UpdateBoundTheme();
                     this.UpdateKeepAwake();
                     this.UpdateWindowTitle();
+                    this.UpdateWindowChrome();
                     return;
             }
         }
@@ -1053,7 +1151,7 @@ namespace Hourglass.Windows
         {
             this.InnerGrid.Background = this.Theme.BackgroundBrush;
             this.ProgressBar.Foreground = this.Theme.ProgressBarBrush;
-            this.ProgressBar.Background  = this.Theme.ProgressBackgroundBrush;
+            this.ProgressBar.Background = this.Theme.ProgressBackgroundBrush;
             this.InnerNotificationBorder.BorderBrush = this.Theme.ExpirationFlashBrush;
             this.OuterNotificationBorder.Background = this.Theme.ExpirationFlashBrush;
             this.TimerTextBox.Foreground = this.Theme.PrimaryTextBrush;
@@ -1075,6 +1173,12 @@ namespace Hourglass.Windows
         /// </summary>
         private void UpdateTaskbarProgress()
         {
+            if (!this.Options.ShowProgressInTaskbar)
+            {
+                this.TaskbarItemInfo.ProgressState = TaskbarItemProgressState.None;
+                return;
+            }
+
             switch (this.Timer.State)
             {
                 case TimerState.Stopped:
@@ -1086,7 +1190,7 @@ namespace Hourglass.Windows
                     if (this.Timer.SupportsProgress)
                     {
                         this.TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
-                        this.TaskbarItemInfo.ProgressValue = (this.Timer.TimeLeftAsPercentage ?? 0.0) / 100.0;
+                        this.TaskbarItemInfo.ProgressValue = this.GetProgressBarValue() / 100.0;
                     }
                     else
                     {
@@ -1100,7 +1204,7 @@ namespace Hourglass.Windows
                     if (this.Timer.SupportsProgress)
                     {
                         this.TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Paused;
-                        this.TaskbarItemInfo.ProgressValue = (this.Timer.TimeLeftAsPercentage ?? 0.0) / 100.0;
+                        this.TaskbarItemInfo.ProgressValue = this.GetProgressBarValue() / 100.0;
                     }
                     else
                     {
@@ -1140,6 +1244,11 @@ namespace Hourglass.Windows
         {
             switch (this.Options.WindowTitleMode)
             {
+                case WindowTitleMode.None:
+                    // Although the title bar is hidden in this mode, the window title is still used for the Taskbar.
+                    this.Title = Properties.Resources.TimerWindowTitle;
+                    break;
+
                 case WindowTitleMode.ApplicationName:
                     this.Title = Properties.Resources.TimerWindowTitle;
                     break;
@@ -1161,7 +1270,128 @@ namespace Hourglass.Windows
                         ? this.Options.Title
                         : Properties.Resources.TimerWindowTitle;
                     break;
+
+                case WindowTitleMode.TimeLeftPlusTimerTitle:
+                    if (this.Timer.State != TimerState.Stopped && !string.IsNullOrWhiteSpace(this.Options.Title))
+                    {
+                        this.Title = string.Join(
+                            Properties.Resources.TimerWindowTitleSeparator,
+                            this.Timer.TimeLeftAsString,
+                            this.Options.Title);
+                    }
+                    else if (this.Timer.State != TimerState.Stopped)
+                    {
+                        this.Title = this.Timer.TimeLeftAsString;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(this.Options.Title))
+                    {
+                        this.Title = this.Options.Title;
+                    }
+                    else
+                    {
+                        this.Title = Properties.Resources.TimerWindowTitle;
+                    }
+
+                    break;
+
+                case WindowTitleMode.TimeElapsedPlusTimerTitle:
+                    if (this.Timer.State != TimerState.Stopped && !string.IsNullOrWhiteSpace(this.Options.Title))
+                    {
+                        this.Title = string.Join(
+                            Properties.Resources.TimerWindowTitleSeparator,
+                            this.Timer.TimeElapsedAsString,
+                            this.Options.Title);
+                    }
+                    else if (this.Timer.State != TimerState.Stopped)
+                    {
+                        this.Title = this.Timer.TimeElapsedAsString;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(this.Options.Title))
+                    {
+                        this.Title = this.Options.Title;
+                    }
+                    else
+                    {
+                        this.Title = Properties.Resources.TimerWindowTitle;
+                    }
+
+                    break;
+
+                case WindowTitleMode.TimerTitlePlusTimeLeft:
+                    if (this.Timer.State != TimerState.Stopped && !string.IsNullOrWhiteSpace(this.Options.Title))
+                    {
+                        this.Title = string.Join(
+                            Properties.Resources.TimerWindowTitleSeparator,
+                            this.Options.Title,
+                            this.Timer.TimeLeftAsString);
+                    }
+                    else if (this.Timer.State != TimerState.Stopped)
+                    {
+                        this.Title = this.Timer.TimeLeftAsString;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(this.Options.Title))
+                    {
+                        this.Title = this.Options.Title;
+                    }
+                    else
+                    {
+                        this.Title = Properties.Resources.TimerWindowTitle;
+                    }
+
+                    break;
+
+                case WindowTitleMode.TimerTitlePlusTimeElapsed:
+                    if (this.Timer.State != TimerState.Stopped && !string.IsNullOrWhiteSpace(this.Options.Title))
+                    {
+                        this.Title = string.Join(
+                            Properties.Resources.TimerWindowTitleSeparator,
+                            this.Options.Title,
+                            this.Timer.TimeElapsedAsString);
+                    }
+                    else if (this.Timer.State != TimerState.Stopped)
+                    {
+                        this.Title = this.Timer.TimeElapsedAsString;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(this.Options.Title))
+                    {
+                        this.Title = this.Options.Title;
+                    }
+                    else
+                    {
+                        this.Title = Properties.Resources.TimerWindowTitle;
+                    }
+
+                    break;
             }
+        }
+
+        /// <summary>
+        /// Updates the window chrome.
+        /// </summary>
+        private void UpdateWindowChrome()
+        {
+            if (this.Options.WindowTitleMode == WindowTitleMode.None)
+            {
+                if (WindowChrome.GetWindowChrome(this)?.CaptionHeight != 0 || WindowChrome.GetWindowChrome(this)?.UseAeroCaptionButtons != false)
+                {
+                    WindowChrome.SetWindowChrome(
+                        this,
+                        new WindowChrome
+                        {
+                            CaptionHeight = 0,
+                            UseAeroCaptionButtons = false
+                        });
+                }
+            }
+            else
+            {
+                if (WindowChrome.GetWindowChrome(this) != null)
+                {
+                    WindowChrome.SetWindowChrome(this, null);
+                }
+            }
+
+            this.SetImmersiveDarkMode(this.Options.Theme.Type == ThemeType.BuiltInDark);
         }
 
         /// <summary>
@@ -1306,6 +1536,9 @@ namespace Hourglass.Windows
                 return;
             }
 
+            // If the interface was previously locked, unlock it when a new timer is started
+            this.Options.LockInterface = false;
+
             this.Show(timerStart);
             this.StartButton.Unfocus();
         }
@@ -1317,6 +1550,11 @@ namespace Hourglass.Windows
         /// <param name="e">The event data.</param>
         private void PauseCommandExecuted(object sender, ExecutedRoutedEventArgs e)
         {
+            if (this.Options.LockInterface)
+            {
+                return;
+            }
+
             this.Timer.Pause();
             this.PauseButton.Unfocus();
         }
@@ -1328,6 +1566,11 @@ namespace Hourglass.Windows
         /// <param name="e">The event data.</param>
         private void ResumeCommandExecuted(object sender, ExecutedRoutedEventArgs e)
         {
+            if (this.Options.LockInterface)
+            {
+                return;
+            }
+
             this.Timer.Resume();
             this.ResumeButton.Unfocus();
         }
@@ -1339,6 +1582,11 @@ namespace Hourglass.Windows
         /// <param name="e">The event data.</param>
         private void PauseResumeCommandExecuted(object sender, ExecutedRoutedEventArgs e)
         {
+            if (this.Options.LockInterface)
+            {
+                return;
+            }
+
             if (this.Timer.State == TimerState.Running)
             {
                 this.Timer.Pause();
@@ -1358,6 +1606,11 @@ namespace Hourglass.Windows
         /// <param name="e">The event data.</param>
         private void StopCommandExecuted(object sender, ExecutedRoutedEventArgs e)
         {
+            if (this.Options.LockInterface)
+            {
+                return;
+            }
+
             this.Timer = new Timer(this.Options);
             TimerManager.Instance.Add(this.Timer);
 
@@ -1366,15 +1619,20 @@ namespace Hourglass.Windows
         }
 
         /// <summary>
-        /// Invoked when the <see cref="ResetCommand"/> is executed.
+        /// Invoked when the <see cref="RestartCommand"/> is executed.
         /// </summary>
         /// <param name="sender">The <see cref="TimerWindow"/>.</param>
         /// <param name="e">The event data.</param>
-        private void ResetCommandExecuted(object sender, ExecutedRoutedEventArgs e)
+        private void RestartCommandExecuted(object sender, ExecutedRoutedEventArgs e)
         {
-            this.Timer.Stop();
-            this.SwitchToInputMode();
-            this.ResetButton.Unfocus();
+            if (this.Options.LockInterface || !this.Timer.SupportsRestart)
+            {
+                return;
+            }
+
+            this.Timer.Restart();
+            this.SwitchToStatusMode();
+            this.RestartButton.Unfocus();
         }
 
         /// <summary>
@@ -1384,6 +1642,11 @@ namespace Hourglass.Windows
         /// <param name="e">The event data.</param>
         private void CloseCommandExecuted(object sender, ExecutedRoutedEventArgs e)
         {
+            if (this.Options.LockInterface && this.Timer.State != TimerState.Stopped && this.Timer.State != TimerState.Expired)
+            {
+                return;
+            }
+
             this.Close();
             this.CloseButton.Unfocus();
         }
@@ -1494,7 +1757,15 @@ namespace Hourglass.Windows
         {
             if (e.Key == Key.Enter && this.Mode == TimerWindowMode.Status)
             {
-                this.TitleTextBox.Unfocus();
+                if (this.Timer.State == TimerState.Expired)
+                {
+                    this.SwitchToInputMode(this.TimerTextBox /* textBoxToFocus */);
+                }
+                else
+                {
+                    this.TitleTextBox.Unfocus();
+                }
+
                 e.Handled = true;
             }
         }
@@ -1506,7 +1777,11 @@ namespace Hourglass.Windows
         /// <param name="e">The event data.</param>
         private void TitleTextBoxPreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (this.Mode != TimerWindowMode.Input && (this.Timer.State == TimerState.Stopped || this.Timer.State == TimerState.Expired))
+            if (this.Options.LockInterface && this.Mode != TimerWindowMode.Input)
+            {
+                e.Handled = true;
+            }
+            else if (this.Mode != TimerWindowMode.Input && (this.Timer.State == TimerState.Stopped || this.Timer.State == TimerState.Expired))
             {
                 this.SwitchToInputMode(this.TitleTextBox /* textBoxToFocus */);
                 e.Handled = true;
@@ -1526,7 +1801,11 @@ namespace Hourglass.Windows
         /// <param name="e">The event data.</param>
         private void TitleTextBoxPreviewGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            if (this.Mode != TimerWindowMode.Input && (this.Timer.State == TimerState.Stopped || this.Timer.State == TimerState.Expired))
+            if (this.Options.LockInterface && this.Mode != TimerWindowMode.Input)
+            {
+                e.Handled = true;
+            }
+            else if (this.Mode != TimerWindowMode.Input && (this.Timer.State == TimerState.Stopped || this.Timer.State == TimerState.Expired))
             {
                 this.SwitchToInputMode(this.TitleTextBox /* textBoxToFocus */);
                 e.Handled = true;
@@ -1538,13 +1817,29 @@ namespace Hourglass.Windows
         }
 
         /// <summary>
+        /// Invoked when the <see cref="TitleTextBox"/> content changes.
+        /// </summary>
+        /// <param name="sender">The <see cref="TitleTextBox"/>.</param>
+        /// <param name="e">The event data.</param>
+        private void TitleTextBoxTextChanged(object sender, TextChangedEventArgs e)
+        {
+            this.Timer.Options.Title = string.IsNullOrWhiteSpace(this.TitleTextBox.Text)
+                ? string.Empty
+                : this.TitleTextBox.Text;
+        }
+
+        /// <summary>
         /// Invoked when any mouse button is pressed while the pointer is over the <see cref="TimerTextBox"/>.
         /// </summary>
         /// <param name="sender">The <see cref="TimerTextBox"/>.</param>
         /// <param name="e">The event data.</param>
         private void TimerTextBoxPreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (this.Mode != TimerWindowMode.Input)
+            if (this.Options.LockInterface && this.Mode != TimerWindowMode.Input)
+            {
+                e.Handled = true;
+            }
+            else if (this.Mode != TimerWindowMode.Input)
             {
                 this.SwitchToInputMode();
                 e.Handled = true;
@@ -1564,7 +1859,11 @@ namespace Hourglass.Windows
         /// <param name="e">The event data.</param>
         private void TimerTextBoxPreviewGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            if (this.Mode != TimerWindowMode.Input)
+            if (this.Options.LockInterface && this.Mode != TimerWindowMode.Input)
+            {
+                e.Handled = true;
+            }
+            else if (this.Mode != TimerWindowMode.Input)
             {
                 this.SwitchToInputMode();
                 e.Handled = true;
@@ -1586,15 +1885,20 @@ namespace Hourglass.Windows
             if (this.timerStartToStartOnLoad != null)
             {
                 this.Show(this.timerStartToStartOnLoad);
-                this.timerStartToStartOnLoad = null;
-                this.timerToResumeOnLoad = null;
+            }
+            else if (this.Options.LockInterface)
+            {
+                // If the interface is locked but no timer input was specified, there is nothing the user can do or
+                // should be able to do other than close the window, so pretend that the timer expired immediately
+                this.Show(TimerStart.Zero, false /* remember */);
             }
             else if (this.timerToResumeOnLoad != null)
             {
                 this.Show(this.timerToResumeOnLoad);
-                this.timerStartToStartOnLoad = null;
-                this.timerToResumeOnLoad = null;
             }
+
+            this.timerStartToStartOnLoad = null;
+            this.timerToResumeOnLoad = null;
 
             // Minimize to notification area if required
             if (this.WindowState == WindowState.Minimized && Settings.Default.ShowInNotificationArea)
@@ -1610,6 +1914,11 @@ namespace Hourglass.Windows
         /// <param name="e">The event data.</param>
         private void WindowMouseDown(object sender, MouseButtonEventArgs e)
         {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                this.DragMove();
+            }
+
             if (e.OriginalSource is Panel)
             {
                 this.CancelOrReset();
@@ -1658,6 +1967,13 @@ namespace Hourglass.Windows
         /// <param name="e">The event data.</param>
         private void WindowClosing(object sender, CancelEventArgs e)
         {
+            // Do not allow the window to be closed if the interface is locked and the timer is running
+            if (this.Options.LockInterface && this.Timer.State != TimerState.Stopped && this.Timer.State != TimerState.Expired)
+            {
+                e.Cancel = true;
+                return;
+            }
+
             // Prompt for confirmation if required
             if (this.Options.PromptOnExit && this.Timer.State != TimerState.Stopped && this.Timer.State != TimerState.Expired)
             {
@@ -1680,6 +1996,7 @@ namespace Hourglass.Windows
 
             Settings.Default.WindowSize = WindowSize.FromWindow(this /* window */);
 
+            UpdateManager.Instance.PropertyChanged -= this.UpdateManagerPropertyChanged;
             KeepAwakeManager.Instance.StopKeepAwakeFor(this);
             AppManager.Instance.Persist();
         }

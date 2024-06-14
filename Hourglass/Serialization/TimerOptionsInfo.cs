@@ -30,9 +30,19 @@ namespace Hourglass.Serialization
         public bool PromptOnExit { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to show progress in the taskbar.
+        /// </summary>
+        public bool ShowProgressInTaskbar { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether to keep the computer awake while the timer is running.
         /// </summary>
         public bool DoNotKeepComputerAwake { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to reverse the progress bar (count backwards).
+        /// </summary>
+        public bool ReverseProgressBar { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to show the time elapsed rather than the time left.
@@ -86,6 +96,12 @@ namespace Hourglass.Serialization
         /// Gets or sets the size, position, and state of the timer window.
         /// </summary>
         public WindowSizeInfo WindowSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the user interface should be locked, preventing the user from taking
+        /// any action until the timer expires.
+        /// </summary>
+        public bool LockInterface { get; set; }
 
         /// <summary>
         /// Returns a <see cref="TimerOptionsInfo"/> for the specified <see cref="TimerOptions"/>.

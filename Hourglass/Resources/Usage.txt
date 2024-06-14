@@ -54,6 +54,13 @@ Options:
         Default value   last
         Alias           -o
 
+  --show-progress-in-taskbar on|off|last
+        Shows progress in taskbar.
+
+        Required        no
+        Default value   last
+        Alias           -y
+
   --do-not-keep-awake on|off|last
         Do not keep the computer awake while the timer is running.
 
@@ -67,6 +74,13 @@ Options:
         Required        no
         Default value   last
         Alias           -n
+
+  --reverse-progress-bar on|off|last
+        Reverses the direction of the progress bar, causing it to run backwards.
+
+        Required        no
+        Default value   last
+        Alias           -g
 
   --show-time-elapsed on|off|last
         Shows the time elapsed since the timer was started, rather than the
@@ -146,15 +160,38 @@ Options:
         Default value   last
         Alias           -v
 
-  --window-title app|left|elapsed|title|last
+  --prefer-24h-time on|off|last
+        When the input used to start the timer contains a time of day that does
+        not explicitly specify "am" or "pm", prefer interpreting the input as a
+        24-hour time rather than the closest 12-hour time to the current time.
+
+        For example, if the current time is 3:00 pm (15:00) and the input is
+        "until 05:00" the timer will --
+        - if this setting is on, count down until 5:00 am (05:00); or
+        - if this setting is off, count down until 5:00 pm (17:00).
+
+        Required        no
+        Default value   last
+        Alias           -j
+
+  --window-title none|app|left|elapsed|title|last
         Sets the timer window title.
 
         The options are:
 
+            none            Hides the timer window title bar.
+
             app             Application name
+
             left            Time remaining
             elapsed         Time elapsed
             title           Timer title
+
+            left+title      Time remaining � Timer title
+            elapsed+title   Time elapsed � Timer title
+
+            title+left      Timer title � Time remaining
+            title+elapsed   Timer title � Time elapsed
 
         Required        no
         Default value   last
@@ -184,6 +221,21 @@ Options:
         Default value   last
         Alias           -b
 
+  --lock-interface on|off
+        Prevents the user from starting, pausing, stopping, or restarting the
+        timer, changing the timer options, or closing the timer window until the
+        timer expires.
+
+        This option is never remembered. It must be specified as a command-line
+        argument each time the timer is started.
+
+        Timers that are started with this option turned on never appear in the
+        "Saved timers" list.
+
+        Required        no
+        Default value   off
+        Alias           -z
+
   --use-factory-defaults
         If specified, any options that are not explicitly set with another
         switch are set to their factory default setting rather than the last
@@ -194,8 +246,10 @@ Options:
             --always-on-top                 off
             --full-screen                   off
             --prompt-on-exit                on
+            --show-progress-in-taskbar      on
             --do-not-keep-awake             off
             --show-in-notification-area     off
+            --reverse-progress-bar          off
             --show-time-elapsed             off
             --loop-timer                    off
             --pop-up-when-expired           on
@@ -205,8 +259,11 @@ Options:
             --sound                         normal beep
             --loop-sound                    off
             --open-saved-timers             off
+            --prefer-24h-time               off
+            --window-title                  app
             --window-state                  normal
             --window-bounds                 auto,auto,350,150
+            --lock-interface                off
 
         Required        no
         Alias           -d
